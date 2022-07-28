@@ -301,10 +301,10 @@ jobs:
             then
               # If you are using kvdb.io, generate the bucket ID "5hrakTfGf13nJvxAgSYgNx" in your local terminal first
               curl https://kvdb.io/5hrakTfGf13nJvxAgSYgNx/migration_${CIRCLE_WORKFLOW_ID:0:7}  -d '1'
-              echo "migeated >>"
+              echo "migeated -_-"
             else
               curl https://kvdb.io/5hrakTfGf13nJvxAgSYgNx/migration_${CIRCLE_WORKFLOW_ID:0:7} -d '0'
-              "not migeated >><<"
+              "not migeated !!"
             fi
       - save_cache:
           paths: [backend/node_modules]
