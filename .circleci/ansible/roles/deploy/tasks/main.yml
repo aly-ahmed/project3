@@ -1,0 +1,91 @@
+---
+- name: "upgrade packages."
+  become: true
+  apt:
+    upgrade: "yes"
+
+- name: "install dependencies."
+  become: true
+  apt:
+    name: ["nodejs", "npm", "tar"]
+    state: latest
+    update_cache: yes
+    
+- name: "install pm2"
+  become: true
+  npm:
+    name: pm2
+    global: yes
+    production: yes
+    state: present
+
+# - name: "Create directory"
+#   become: true
+#   file:
+#     path: ~/backend
+#     state: directory
+#     mode: 0777
+- name: Copy backend dist files web server
+  become: true
+  copy:
+    src: ~/project/artifact.tar.gz
+    dest: ~/artifact.tar.gz
+    
+    
+- name: Extract backend files
+  become: true
+  shell: |
+    cd ~/
+    tar -vxf artifact.tar.gz
+    rm .env.sample
+    chmod -R 777 ~/
+
+    
+- name: NPM install
+  become: true    
+  shell: |
+    npm install --force
+  args:
+    chdir: ~/
+  register: shell_output
+# - name: NPM build
+#   become: true  
+#   command: npm run build
+#   args:
+#     chdir: /root/backend    
+#   register: shell_output
+- name: npm install pm2@latest -g
+  become: true
+  command: npm install pm2@latest -g
+  args:
+    chdir: ~/    
+  register: shell_output
+ 
+- name: PM2 start backend
+  become: true  
+  shell: |
+    pm2 stop all
+    pm2 start npm -- run start --update-env
+  args:
+    chdir: ~/  
+  register: shell_output  
+
+- name: PM2 check backend status in pm2
+  become: true
+  command: pm2 status
+  args:
+    chdir: ~/  
+  register: shell_output  
+
+# - name: pm2 restart npm  --update-env
+#   become: true
+#   command: pm2 restart npm  --update-env
+#   args:
+#     chdir: ~/    
+#   register: shell_output
+  
+- name: "Configure pm2 to start as service"
+  become: true
+  shell: |
+      env PATH=$PATH:/usr/local/bin pm2 startup systemd -u ubuntu --hp /home/ubuntu
+- debug: var=shell_output
