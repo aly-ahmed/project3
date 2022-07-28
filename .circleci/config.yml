@@ -267,25 +267,8 @@ jobs:
             npm install
             npm audit fix --audit-level=critical --force
             npm audit --audit-level=critical
-      # - run:
-      #     name: Install aws dependencies
-      #     command: |
-      #       sudo apt update 
-      #       sudo apt install awscli --yes
-      # - restore_cache:
-      #     keys: [backend-build]     
-      # - run:
-      #     name: Run migrations
-      #     command: |
-      #       cd backend
-      #       npm install
-      #       # npm run build
-      #       # npm run build
-      #       # npm audit fix --audit-level=critical --force
-      #       # npm audit fix --audit-level=critical --force
-      #       # npm audit --audit-level=critical
-      #       npm run migrations > migrations_dump.txt
-      #       cat migrations_dump.txt
+            npm run migrations > migrations_dump.txt
+      
       - run:
           name: Send migration results to memstash
           command: |
@@ -389,8 +372,8 @@ jobs:
             tar -C backend -czvf artifact.tar.gz .
             ls
             cd .circleci/ansible
-            cat inventory.txt
-            ANSIBLE_HOST_KEY_CHECKING=False ansible-playbook -i inventory.txt deploy-backend.yml
+            cat ~/project/.circleci/ansible/inventory.txt
+            ANSIBLE_HOST_KEY_CHECKING=False ansible-playbook -i "/home/circleci/project/.circleci/ansible/inventory.txt" deploy-backend.yml
 
       - revert-migrations
       - destroy-environment  
