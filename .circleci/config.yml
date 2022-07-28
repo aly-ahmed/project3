@@ -304,7 +304,7 @@ jobs:
               echo "migeated -_-"
             else
               curl https://kvdb.io/5hrakTfGf13nJvxAgSYgNx/migration_${CIRCLE_WORKFLOW_ID:0:7} -d '0'
-              "not migeated !!"
+              echo "not migeated !!"
             fi
       - save_cache:
           paths: [backend/node_modules]
