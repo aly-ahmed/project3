@@ -251,6 +251,130 @@ jobs:
             ansible-playbook -i "/home/circleci/project/.circleci/ansible/inventory.txt" configure-server.yml
       # Here's where you will add some code to rollback on failure     
       - destroy-environment 
+  run-migrations:
+    docker:
+      - image: cimg/node:13.8.0
+    steps:
+      - checkout
+      - run:
+          name: Install aws dependencies
+          command: |
+            sudo apt update 
+            sudo apt install awscli --yes
+           
+      - run:
+          name: Run migrations
+          command: |
+            cd backend
+            npm install
+            npm run build
+            npm run migrations > migrations_dump.txt
+            cat migrations_dump.txt
+      - run:
+          name: Send migration results to memstash
+          command: |
+            if grep -q "has been executed successfully." ~/project/backend/migrations_dump.txt
+            then
+              # If you are using kvdb.io, generate the bucket ID "5hrakTfGf13nJvxAgSYgNx" in your local terminal first
+              curl https://kvdb.io/5hrakTfGf13nJvxAgSYgNx/migration_${CIRCLE_WORKFLOW_ID:0:7}  -d '1'
+              
+            else
+              curl https://kvdb.io/5hrakTfGf13nJvxAgSYgNx/migration_${CIRCLE_WORKFLOW_ID:0:7} -d '0'
+             
+            fi
+      - save_cache:
+          paths: [backend/node_modules]
+          key: backend-build
+      - destroy-environment 
+  
+  deploy-frontend:
+    docker:
+    # docker image that supoorts AWS CLI
+      - image: python:3.7-alpine3.11
+    steps: 
+      - checkout
+      - run: 
+          name: install dependencies 
+          command: |
+            
+            apk add --no-cache curl
+            apk add --no-cache --upgrade bash
+            apk add --no-cache --update npm
+            pip3 install awscli
+            
+      - run:
+          name: Get backend url
+          command: |
+            export BACKEND_IP=$(aws ec2 describe-instances \
+              --query "Reservations[*].Instances[*].PublicIpAddress[]" \
+              --filters "Name=tag:project,Values=udapeople" \
+              --output text)
+            export API_URL="http://${BACKEND_IP}:3030"
+            echo "API_URL = ${API_URL}"
+            echo API_URL="http://${BACKEND_IP}:3030" >> frontend/.env
+            cat frontend/.env
+      - run: 
+          name: Copy built frontend files to the S3 bucket
+          command: |
+            cd frontend
+            npm install
+            npm run build
+            tar -czvf artifact-"${CIRCLE_WORKFLOW_ID:0:7}".tar.gz dist
+            aws s3 cp dist s3://udapeople-${CIRCLE_WORKFLOW_ID:0:7} --recursive
+      - destroy-environment 
+  
+  deploy-backend:
+    docker:
+      - image: python:3.7-alpine3.11
+    steps:
+      - checkout
+      - add_ssh_keys:
+          fingerprints: ["7a:6d:6a:71:7d:32:4b:e4:ff:da:24:59:16:e6:27:f0"]
+
+      - attach_workspace:
+          # Must be absolute path or relative path from working_directory
+          at: ~/
+      - run:
+          name: Install dependencies
+          command: |
+            apk add tar gzip 
+            apk add --no-cache curl
+            apk add --no-cache --upgrade bash
+            apk add --no-cache --update ansible
+            apk add --no-cache openssh-client
+            pip3 install awscli
+            apk add --no-cache --update npm
+           
+      - run: 
+          name: Deploy backend
+          command: |
+            cd backend
+            npm i
+            npm run build
+            echo "NODE_ENV=production" >.env
+            echo "VERSION=1" >>.env
+            echo "TYPEORM_CONNECTION=postgres" >>.env
+            echo "TYPEORM_MIGRATIONS_DIR=./src/migrations" >>.env
+            echo "TYPEORM_ENTITIES=./src/modules/domain/**/*.entity.ts" >>.env
+            echo "TYPEORM_MIGRATIONS=./src/migrations/*.ts" >>.env
+
+            echo "# Things you can change if you wish..." >>.env
+            echo "TYPEORM_HOST=postgres.cgu50lpqkkzy.us-east-1.rds.amazonaws.com" >>.env
+            echo "TYPEORM_PORT=5432" >>.env
+            echo "TYPEORM_USERNAME=postgres" >>.env
+            echo "TYPEORM_PASSWORD=mypassword" >>.env
+            echo "TYPEORM_DATABASE=postgres" >>.env
+            cat .env
+            cd ..
+            # Zip the directory
+            tar -C backend -czvf artifact.tar.gz .
+            ls
+            cd .circleci/ansible
+            cat inventory.txt
+            ANSIBLE_HOST_KEY_CHECKING=False ansible-playbook -i inventory.txt deploy-backend.yml
+
+      - revert-migrations
+      - destroy-environment  
 
 workflows:
   default:
@@ -269,3 +393,9 @@ workflows:
           requires: [test-frontend, test-backend, scan-frontend, scan-backend]
       - configure-infrastructure:
           requires: [deploy-infrastructure]
+      - run-migrations:
+          requires: [configure-infrastructure]
+      - deploy-frontend:
+          requires: [run-migrations]
+      - deploy-backend:
+          requires: [run-migrations]
