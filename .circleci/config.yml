@@ -219,6 +219,39 @@ jobs:
       # Here's where you will add some code to rollback on failure   
       - destroy-environment
 
+  configure-infrastructure:
+    
+    docker:
+      - image: circleci/python:3.6.2
+    steps:
+      - checkout
+      - add_ssh_keys:
+          fingerprints:
+            - "7a:6d:6a:71:7d:32:4b:e4:ff:da:24:59:16:e6:27:f0"
+      
+      - run:
+          name: Install dependencies
+          command: |
+            sudo apt update
+            sudo python3 -m pip install -U pip
+            sudo python -m pip install ansible
+            sudo apt install software-properties-common --force-yes
+            sudo apt install tar gzip --yes
+            sudo apt install awscli --yes
+      
+      - attach_workspace:
+          # Must be absolute path or relative path from working_directory
+          at: ~/
+      - run:
+          name: Configure server
+          command: |
+            pwd
+            cat ~/project/.circleci/ansible/inventory.txt
+            cd .circleci/ansible
+            ansible-playbook -i "/home/circleci/project/.circleci/ansible/inventory.txt" configure-server.yml
+      # Here's where you will add some code to rollback on failure     
+      - destroy-environment 
+
 workflows:
   default:
     jobs:
@@ -234,3 +267,5 @@ workflows:
           requires: [build-frontend]
       - deploy-infrastructure:
           requires: [test-frontend, test-backend, scan-frontend, scan-backend]
+      - configure-infrastructure:
+          requires: [deploy-infrastructure]
