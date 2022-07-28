@@ -267,8 +267,12 @@ jobs:
           name: Run migrations
           command: |
             cd backend
+            rm -rf node_modules >> /dev/null 2>&1
+            rm package-lock.json yarn.lock >> /dev/null 2>&1
+            npm cache clear --force
             npm install
-            npm run build
+          
+            npm run build -prod
             npm run migrations > migrations_dump.txt
             cat migrations_dump.txt
             
