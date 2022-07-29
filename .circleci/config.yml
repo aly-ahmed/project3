@@ -429,10 +429,10 @@ jobs:
               if curl "${API_URL}/api/status" | grep "ok"
               then
                   echo  "oook"
-                  return 0
+                  # return 0
               else
                   echo  "nooo"
-                  return 1
+                  # return 1
               fi    
               
         - run:
@@ -443,9 +443,11 @@ jobs:
               if curl -s ${URL} | grep "Welcome"
               then
                   # Change this to 0 after the job fails
-                return 0
+                  echo  "oook"
+                  # return 0
               else
-                return 1
+                  echo  "nooo"
+                  # return 1
               fi
         
       # Here's where you will add some code to rollback on failure  
@@ -473,8 +475,8 @@ jobs:
           name: Wait for the stack to complete
           command : sleep 300 
       # Here's where you will add some code to rollback on failure  
-      - revert-migrations
-      - destroy-environment 
+      # - revert-migrations
+      # - destroy-environment 
 
   cleanup:
     docker:

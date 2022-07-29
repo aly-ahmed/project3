@@ -8,7 +8,6 @@
   become: true
   apt:
     name: ["nodejs", "npm", "tar"]
-    state: latest
     update_cache: yes
     
 - name: "install pm2"
@@ -22,41 +21,42 @@
 - name: "Create directory"
   become: true
   file:
-    path: ~/backend
+    path: /backend
     state: directory
     mode: 0777
 - name: Copy backend dist files web server
   become: true
   copy:
     src: ~/project/artifact.tar.gz
-    dest: ~/backend/artifact.tar.gz
+    dest: /backend/artifact.tar.gz
     
     
 - name: Extract backend files
   become: true
   shell: |
-    cd ~/backend
-    tar -xvzf artifact.tar.gz
+    cd /backend
+    tar -xvzf artifact.tar.gz --directory /backend
     rm .env.sample
     rm -rf artifact.tar.gz
-    chmod -R 777 ~/backend
+    chmod -R 777 /backend
 
 - name: "Install dependencies for project"
+  become: true
   shell: |
-      cd ~/backend
+      cd /backend
       npm install --force
 
 - name: "Executing node"
+  become: true
   shell: |
-      export
-      cd ~/backend
-      pm2 start main.js --update-env
+      cd /backend
+      pm2 start npm -- run start --update-env
       
   register: execute_node
 
-- name: print message
-  debug:
-      msg: "{{ execute_node.stdout_lines }}"
+# - name: print message
+#   debug:
+#       msg: "{{ execute_node.stdout_lines }}"
 
 - name: "Configure pm2 to start as service"
   become: true
@@ -73,7 +73,7 @@
 #   register: shell_output
 # # - name: NPM build
 # #   become: true  
-# #   command: npm run build
+# #   command:  
 # #   args:
 # #     chdir: /root/backend    
 # #   register: shell_output
