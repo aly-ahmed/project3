@@ -15,8 +15,8 @@
     - TYPEORM_MIGRATIONS_DIR: "./src/migrations"
     - TYPEORM_CONNECTION: "postgres"
     - TYPEORM_ENTITIES: "./src/modules/domain/**/*.entity.ts"
-    - TYPEORM_HOST: "database-1.cazdb8tjarlp.us-east-1.rds.amazonaws.com"
-    - TYPEORM_PORT: "5432"
+    - TYPEORM_HOST: database-1.cazdb8tjarlp.us-east-1.rds.amazonaws.com
+    - TYPEORM_PORT: 5432
     - TYPEORM_USERNAME: "postgres"
     - TYPEORM_PASSWORD: "mypassword"
     - TYPEORM_DATABASE: "postgres"
