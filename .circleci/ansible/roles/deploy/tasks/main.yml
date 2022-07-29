@@ -8,6 +8,7 @@
   become: true
   apt:
     name: ["nodejs", "npm", "tar"]
+    state: latest
     update_cache: yes
     
 - name: "install pm2"
@@ -18,97 +19,73 @@
     production: yes
     state: present
 
-- name: "Create directory"
-  become: true
-  file:
-    path: /backend
-    state: directory
-    mode: 0777
+# - name: "Create directory"
+#   become: true
+#   file:
+#     path: ~/backend
+#     state: directory
+#     mode: 0777
 - name: Copy backend dist files web server
   become: true
   copy:
     src: ~/project/artifact.tar.gz
-    dest: /backend/artifact.tar.gz
+    dest: ~/artifact.tar.gz
     
     
 - name: Extract backend files
   become: true
   shell: |
-    cd /backend
-    tar -xvzf artifact.tar.gz --directory /backend
+    cd ~/
+    tar -vxf artifact.tar.gz
     rm .env.sample
-    rm -rf artifact.tar.gz
-    chmod -R 777 /backend
+    chmod -R 777 ~/
 
-- name: "Install dependencies for project"
-  become: true
+    
+- name: NPM install
+  become: true    
   shell: |
-      cd /backend
-      npm install --force
-
-- name: "Executing node"
+    npm install --force
+  args:
+    chdir: ~/
+  register: shell_output
+# - name: NPM build
+#   become: true  
+#   command: npm run build
+#   args:
+#     chdir: /root/backend    
+#   register: shell_output
+- name: npm install pm2@latest -g
   become: true
+  command: npm install pm2@latest -g
+  args:
+    chdir: ~/    
+  register: shell_output
+ 
+- name: PM2 start backend
+  become: true  
   shell: |
-      cd /backend
-      pm2 start npm -- run start --update-env
-      
-  register: execute_node
+    pm2 stop all
+    pm2 start npm -- run start --update-env
+  args:
+    chdir: ~/  
+  register: shell_output  
 
-# - name: print message
-#   debug:
-#       msg: "{{ execute_node.stdout_lines }}"
+- name: PM2 check backend status in pm2
+  become: true
+  command: pm2 status
+  args:
+    chdir: ~/  
+  register: shell_output  
 
+# - name: pm2 restart npm  --update-env
+#   become: true
+#   command: pm2 restart npm  --update-env
+#   args:
+#     chdir: ~/    
+#   register: shell_output
+  
 - name: "Configure pm2 to start as service"
   become: true
   shell: |
       env PATH=$PATH:/usr/local/bin pm2 startup systemd -u ubuntu --hp /home/ubuntu
-
-    
-# - name: NPM install
-#   become: true    
-#   shell: |
-#     npm install --force
-#   args:
-#     chdir: ~/
-#   register: shell_output
-# # - name: NPM build
-# #   become: true  
-# #   command:  
-# #   args:
-# #     chdir: /root/backend    
-# #   register: shell_output
-# - name: npm install pm2@latest -g
-#   become: true
-#   command: npm install pm2@latest -g
-#   args:
-#     chdir: ~/    
-#   register: shell_output
- 
-# - name: PM2 start backend
-#   become: true  
-#   shell: |
-#     pm2 stop all
-#     pm2 start npm -- run start --update-env
-#   args:
-#     chdir: ~/  
-#   register: shell_output  
-
-# - name: PM2 check backend status in pm2
-#   become: true
-#   command: pm2 status
-#   args:
-#     chdir: ~/  
-#   register: shell_output  
-
-# # - name: pm2 restart npm  --update-env
-# #   become: true
-# #   command: pm2 restart npm  --update-env
-# #   args:
-# #     chdir: ~/    
-# #   register: shell_output
-  
-# - name: "Configure pm2 to start as service"
-#   become: true
-#   shell: |
-#       env PATH=$PATH:/usr/local/bin pm2 startup systemd -u ubuntu --hp /home/ubuntu
-# - debug: var=shell_output
+- debug: var=shell_output
