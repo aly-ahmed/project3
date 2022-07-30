@@ -359,7 +359,7 @@ jobs:
             echo "TYPEORM_MIGRATIONS=./src/migrations/*.ts" >>.env
 
             echo "# Things you can change if you wish..." >>.env
-            echo "TYPEORM_HOST=database-1.cazdb8tjarlp.us-east-1.rds.amazonaws.com" >>.env
+            echo "TYPEORM_HOST=postgres.cazdb8tjarlp.us-east-1.rds.amazonaws.com" >>.env
             echo "TYPEORM_PORT=5432" >>.env
             echo "TYPEORM_USERNAME=postgres" >>.env
             echo "TYPEORM_PASSWORD=mypassword" >>.env
@@ -411,7 +411,7 @@ jobs:
               if curl -s ${URL} | grep "Welcome"
               then
                   # Change this to 0 after the job fails
-                return 0
+                return 1
               else
                 return 1
               fi
