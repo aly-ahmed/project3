@@ -1,7 +1,7 @@
 version: 2.1
 commands:
   destroy-environment:
-    description: Destroy back-end and front-end cloudformation stacks given a workflow ID.
+    description: Destroy back-end and front-end cloudformation stacks.
     # parameters:
     #   # Add parameter here   
     steps:
@@ -156,7 +156,6 @@ jobs:
    
     docker:
       - image: amazon/aws-cli
-      # Docker image here that supports AWS CLI
     steps:
       # Checkout code from git
       - checkout
@@ -210,7 +209,6 @@ jobs:
               --filters "Name=tag:project,Values=udapeople" \
               --output text >> .circleci/ansible/inventory.txt
             cat .circleci/ansible/inventory.txt
-            pwd
       
       - persist_to_workspace:
           root: ~/
@@ -273,7 +271,7 @@ jobs:
       - run:
           name: Send migration results to memstash
           command: |
-            if grep -q "has been executed successfully." ~/project/backend/migrations_dump.txt
+            if grep -q "has been executed successfully" ~/project/backend/migrations_dump.txt
             then
               # If you are using kvdb.io, generate the bucket ID "5hrakTfGf13nJvxAgSYgNx" in your local terminal first
               curl https://kvdb.io/5hrakTfGf13nJvxAgSYgNx/migration_${CIRCLE_WORKFLOW_ID:0:7}  -d '1'
@@ -363,19 +361,16 @@ jobs:
             echo "TYPEORM_PORT=5432" >>.env
             echo "TYPEORM_USERNAME=postgres" >>.env
             echo "TYPEORM_PASSWORD=mypassword" >>.env
-            echo "TYPEORM_DATABASE=postgres" >>.env
-            cat .env
+            echo "TYPEORM_DATABASE=postgres" >>.env       
             cd ..
             # Zip the directory
             tar -C backend -czvf artifact.tar.gz .
-            ls
             cd .circleci/ansible
             cat inventory.txt
             ANSIBLE_HOST_KEY_CHECKING=False ansible-playbook -i inventory.txt deploy-backend.yml
-
+      - destroy-environment 
       - revert-migrations
-      - destroy-environment  
-
+       
   smoke-test:
     docker:
       - image: python:3.7-alpine3.11
@@ -415,8 +410,7 @@ jobs:
               else
                 return 1
               fi
-      # Here's where you will add some code to rollback on failure  
-        
+
         - destroy-environment 
         - revert-migrations
   cloudfront-update:
@@ -440,8 +434,9 @@ jobs:
           name: Wait for the stack to complete
           command : sleep 300 
       # Here's where you will add some code to rollback on failure  
-      - revert-migrations
+      
       - destroy-environment 
+      - revert-migrations
 
   cleanup:
     docker:
@@ -467,10 +462,10 @@ jobs:
                   aws cloudformation delete-stack --stack-name "udapeople-frontend-${OldWorkflowID}"
                   echo 'cleanup done '
                 else
-                  echo 'cleanup is not reqired'
+                  echo ' not reqired'
                 fi
               else  
-                echo 'cleanup is not reqired'
+                echo ' not reqired'
               fi
            
 workflows:
